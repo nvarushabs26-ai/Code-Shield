@@ -1,0 +1,6 @@
+{
+  "name": "CodeShield – Source Code Security & Privacy Analyzer",
+  "description": "Intelligent source code security and privacy analyzer that detects hard-coded secrets, database credentials, dangerous coding patterns, and weak cryptography with severity scoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

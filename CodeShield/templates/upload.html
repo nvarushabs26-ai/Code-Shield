@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Upload Source Code – CodeShield{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dash-title">Source Code Security Analyzer</h1>
+            <p class="dash-subtitle">Upload source files or paste code for line-by-line vulnerability inspection</p>
+        </div>
+    </div>
+
+    <div class="upload-layout">
+        <form action="{{ url_for('scan') }}" method="POST" enctype="multipart/form-data" class="upload-form" id="scanForm">
+            <!-- Project Selection -->
+            <div class="form-group">
+                <label for="project_id">Target Project</label>
+                <select name="project_id" id="project_id" class="form-input" required>
+                    {% for p in projects %}
+                        <option value="{{ p.id }}">{{ p.project_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Upload Area -->
+            <div class="upload-dropzone" id="dropzone">
+                <input type="file" name="file" id="fileInput" class="file-hidden-input" accept=".py,.java,.js,.html,.css,.cpp,.c,.php,.sql,.txt">
+                <div class="dropzone-content">
+                    <div class="dropzone-icon">📤</div>
+                    <h3>Drag & Drop Source Code File Here</h3>
+                    <p class="dropzone-hint">or click to browse your files</p>
+                    <div class="supported-tags">
+                        <span>.py</span>
+                        <span>.java</span>
+                        <span>.js</span>
+                        <span>.html</span>
+                        <span>.css</span>
+                        <span>.cpp</span>
+                        <span>.c</span>
+                        <span>.php</span>
+                        <span>.sql</span>
+                        <span>.txt</span>
+                    </div>
+                    <div id="fileSelectedInfo" class="file-selected-box" style="display: none;">
+                        <span id="selectedFileName">filename.py</span>
+                        <span id="selectedFileType" class="file-type-badge">Python</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Or Paste Code Snippet -->
+            <div class="divider-text">
+                <span>OR PASTE SOURCE CODE DIRECTLY</span>
+            </div>
+
+            <div class="form-group">
+                <div class="code-editor-header">
+                    <label for="code_text">Source Code Snippet</label>
+                    <input type="text" name="custom_filename" class="filename-input" placeholder="filename.py (e.g. app.py)" value="sample_code.py">
+                </div>
+                <textarea id="code_text" name="code_text" class="code-textarea" rows="10" placeholder="// Paste source code here or load a sample scenario below..."></textarea>
+            </div>
+
+            <!-- Preloaded Test Samples for Quick Evaluation -->
+            <div class="sample-loaders">
+                <span class="sample-label">Load Vulnerable Test Sample:</span>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="loadSample('python')">Vulnerable Python</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="loadSample('javascript')">Leaked AWS JS</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="loadSample('php')">Vulnerable PHP/SQL</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="loadSample('clean')">Clean Code</button>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg" id="scanSubmitBtn">
+                    <span class="btn-text">Execute Security Scan</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="rules-sidebar">
+            <h3>Active Detection Rules</h3>
+            <p class="rules-desc">CodeShield scans line-by-line for 10 critical security and privacy categories:</p>
+            <ul class="rule-checklist">
+                <li><span class="badge red">CRITICAL</span> Hardcoded API Keys & Secrets</li>
+                <li><span class="badge red">CRITICAL</span> AWS Access Keys (AKIA...)</li>
+                <li><span class="badge red">CRITICAL</span> Exposed RSA / Private Keys</li>
+                <li><span class="badge orange">HIGH</span> Hardcoded Passwords</li>
+                <li><span class="badge orange">HIGH</span> Database Passwords & Credentials</li>
+                <li><span class="badge orange">HIGH</span> Dangerous eval() / exec()</li>
+                <li><span class="badge orange">HIGH</span> SQL Injection String Concatenation</li>
+                <li><span class="badge yellow">MEDIUM</span> Weak Hashing (MD5, SHA1)</li>
+                <li><span class="badge yellow">MEDIUM</span> Debug Mode Flag Enabled</li>
+                <li><span class="badge yellow">MEDIUM</span> Sensitive Information & PII</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadSample(type) {
+    const textarea = document.getElementById('code_text');
+    const fnInput = document.querySelector('input[name="custom_filename"]');
+    
+    if (type === 'python') {
+        fnInput.value = 'server_backend.py';
+        textarea.value = `import os
+import hashlib
+
+# Hardcoded credentials
+password = "supersecretpassword123"
+DB_PASSWORD = "production_mysql_pass"
+API_KEY = "sk-live-938210491823901823"
+AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+
+# Weak cryptographic hashing
+password_hash = hashlib.md5(password.encode()).hexdigest()
+
+# Dangerous execution
+user_expression = "1 + 1"
+result = eval(user_expression)
+
+# Debug mode enabled
+app.run(host='0.0.0.0', debug=True)
+
+# SQL Injection risk
+def get_user(user_id):
+    query = "SELECT * FROM users WHERE id=" + user_id
+    return db.execute(query)`;
+    } else if (type === 'javascript') {
+        fnInput.value = 'auth_service.js';
+        textarea.value = `const AWS_KEY = "AKIAIOSFODNN7EXAMPLE";
+const client_secret = "secret_tok_9918204128912";
+const admin_email = "security-lead@company.com";
+
+function processCommand(rawInput) {
+    // Dangerous eval execution
+    return eval("2 + " + rawInput);
+}
+
+const dbConfig = {
+    DB_USER: "admin",
+    DB_PASSWORD: "secret_db_pass_2026"
+};`;
+    } else if (type === 'php') {
+        fnInput.value = 'query_handler.php';
+        textarea.value = `<?php
+$MYSQL_PASSWORD = "database_root_password";
+$query = "SELECT * FROM accounts WHERE username = '" . $_POST['username'] . "'";
+
+// Weak hash
+$hash = md5($_POST['password']);
+
+// Sensitive token header
+$auth = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+?>`;
+    } else if (type === 'clean') {
+        fnInput.value = 'secure_service.py';
+        textarea.value = `import os
+import bcrypt
+
+# Securely reading credentials from environment variables
+api_key = os.environ.get("SERVICE_API_KEY")
+db_password = os.environ.get("DATABASE_PASSWORD")
+
+# Strong modern bcrypt password hashing
+hashed = bcrypt.hashpw(b"user_supplied_pw", bcrypt.gensalt(12))
+
+# Parameterized query execution prevents SQL injection
+def get_account_safe(db_conn, user_id):
+    query = "SELECT id, username, email FROM users WHERE id = %s"
+    return db_conn.execute(query, (user_id,))`;
+    }
+}
+
+// File dropzone trigger
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const infoBox = document.getElementById('fileSelectedInfo');
+const fileNameSpan = document.getElementById('selectedFileName');
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        fileNameSpan.textContent = file.name;
+        infoBox.style.display = 'inline-block';
+    }
+});
+</script>
+{% endblock %}

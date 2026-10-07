@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Security Audit Report – CodeShield{% endblock %}
+
+{% block content %}
+<div class="report-container">
+    <div class="report-toolbar no-print">
+        <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-outline">&larr; Back to Results</a>
+        <div class="report-actions">
+            <button type="button" class="btn btn-secondary" onclick="window.print()">
+                🖨️ Print Report
+            </button>
+            <button type="button" class="btn btn-primary" onclick="downloadReportJSON()">
+                📥 Download JSON Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Report Document Paper -->
+    <div class="report-paper">
+        <div class="report-paper-header">
+            <div class="report-branding">
+                <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <div>
+                    <h2>CodeShield Security Report</h2>
+                    <span class="report-sub">Source Code Vulnerability & Privacy Audit</span>
+                </div>
+            </div>
+            <div class="report-date-block">
+                <span>Report Generated</span>
+                <strong>{{ scan.scan_date.strftime('%B %d, %Y') if scan.scan_date else 'October 2026' }}</strong>
+            </div>
+        </div>
+
+        <div class="report-meta-grid">
+            <div class="meta-item">
+                <span class="label">Project Name:</span>
+                <span class="val">{{ scan.project_name }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">Target Source File:</span>
+                <span class="val"><code>{{ scan.file_name }}</code></span>
+            </div>
+            <div class="meta-item">
+                <span class="label">Audit Timestamp:</span>
+                <span class="val">{{ scan.scan_date.strftime('%Y-%m-%d %H:%M:%S UTC') if scan.scan_date else 'N/A' }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="label">Overall Security Score:</span>
+                <span class="val score-val-lg">{{ scan.security_score }}/100</span>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="report-section">
+            <h3 class="report-sec-title">1. Executive Summary</h3>
+            <p class="report-text">
+                This document delivers an automated static application security testing (SAST) assessment performed by the CodeShield analysis engine on <strong>{{ scan.file_name }}</strong> within the <strong>{{ scan.project_name }}</strong> workspace.
+                A total of <strong>{{ scan.total_issues }} security finding(s)</strong> were identified, producing an aggregate health rating of 
+                <strong>{{ scan.security_score }}/100</strong>.
+                {% if scan.critical_count > 0 %}
+                    <span class="text-danger font-semibold">Immediate intervention is recommended for {{ scan.critical_count }} critical vulnerability pattern(s).</span>
+                {% else %}
+                    No critical risk patterns were identified; ensure high and medium findings are remediated before release.
+                {% endif %}
+            </p>
+
+            <div class="summary-stat-boxes">
+                <div class="stat-box red">
+                    <span class="num">{{ scan.critical_count }}</span>
+                    <span class="lbl">Critical Severity</span>
+                </div>
+                <div class="stat-box orange">
+                    <span class="num">{{ scan.high_count }}</span>
+                    <span class="lbl">High Severity</span>
+                </div>
+                <div class="stat-box yellow">
+                    <span class="num">{{ scan.medium_count }}</span>
+                    <span class="lbl">Medium Severity</span>
+                </div>
+                <div class="stat-box blue">
+                    <span class="num">{{ scan.low_count }}</span>
+                    <span class="lbl">Low Severity</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Findings -->
+        <div class="report-section">
+            <h3 class="report-sec-title">2. Detailed Findings & Remediation Guidance</h3>
+            
+            {% if issues %}
+                <div class="findings-list">
+                    {% for issue in issues %}
+                        <div class="finding-card-item">
+                            <div class="finding-top">
+                                <div>
+                                    <span class="badge-tag badge-{{ issue.severity|lower }}">{{ issue.severity }}</span>
+                                    <strong class="finding-name">{{ issue.issue_type }}</strong>
+                                </div>
+                                <span class="finding-loc">Line {{ issue.line_number }}</span>
+                            </div>
+
+                            {% if issue.code_snippet %}
+                                <div class="finding-code">
+                                    <code>{{ issue.code_snippet }}</code>
+                                </div>
+                            {% endif %}
+
+                            <p class="finding-desc"><strong>Description:</strong> {{ issue.description }}</p>
+                            <div class="finding-remediation">
+                                <strong>Remediation Recommendation:</strong>
+                                <p>{{ issue.recommendation }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="clean-note">No security defects or sensitive data exposures were identified in the scanned file.</p>
+            {% endif %}
+        </div>
+
+        <!-- Conclusion & Disclaimer -->
+        <div class="report-section report-conclusion">
+            <h3 class="report-sec-title">3. Assessment Conclusion & Academic Disclaimer</h3>
+            <p class="report-text">
+                CodeShield provides a preliminary automated security analysis. The report should be used as a development aid and does not replace a professional security audit.
+            </p>
+            <div class="signatures-row">
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <span>Auditing Tool: CodeShield Automated Engine</span>
+                </div>
+                <div class="sig-box">
+                    <div class="sig-line"></div>
+                    <span>BCA Academic Project Evaluation Committee</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadReportJSON() {
+    const reportData = {
+        title: "CodeShield Security Report",
+        project: "{{ scan.project_name }}",
+        file: "{{ scan.file_name }}",
+        score: {{ scan.security_score }},
+        total_issues: {{ scan.total_issues }},
+        date: "{{ scan.scan_date }}",
+        breakdown: {
+            critical: {{ scan.critical_count }},
+            high: {{ scan.high_count }},
+            medium: {{ scan.medium_count }},
+            low: {{ scan.low_count }}
+        },
+        issues: [
+            {% for issue in issues %}
+            {
+                type: "{{ issue.issue_type }}",
+                severity: "{{ issue.severity }}",
+                line: {{ issue.line_number }},
+                snippet: "{{ issue.code_snippet|replace('"', '\\"') }}",
+                description: "{{ issue.description|replace('"', '\\"') }}",
+                recommendation: "{{ issue.recommendation|replace('"', '\\"') }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codeshield_report_${reportData.file}_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

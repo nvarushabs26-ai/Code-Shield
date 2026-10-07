@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Scan Results – CodeShield{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="results-header">
+        <div class="results-title-group">
+            <span class="status-indicator-tag">Scan Complete</span>
+            <h1>Security Scan Findings</h1>
+            <p class="file-scanned-meta">
+                Target File: <code>{{ scan.file_name }}</code> &middot; 
+                Project: <strong>{{ scan.project_name }}</strong> &middot; 
+                Audited: {{ scan.scan_date.strftime('%Y-%m-%d %H:%M') if scan.scan_date else 'Just now' }}
+            </p>
+        </div>
+        <div class="results-action-group">
+            <a href="{{ url_for('upload') }}" class="btn btn-outline">Scan Another File</a>
+            <a href="{{ url_for('report', scan_id=scan.id) }}" class="btn btn-primary">View Full Report</a>
+        </div>
+    </div>
+
+    <!-- Score Card & Breakdown -->
+    <div class="score-overview-grid">
+        <div class="score-card-main">
+            <div class="circular-score-wrapper">
+                <div class="score-number">{{ scan.security_score }}</div>
+                <div class="score-denom">/ 100</div>
+            </div>
+            <div class="score-text-details">
+                <h3 class="score-status-title">
+                    {% if scan.security_score >= 90 %}
+                        <span class="text-excellent">Excellent Security Posture</span>
+                    {% elif scan.security_score >= 75 %}
+                        <span class="text-good">Good Security Posture</span>
+                    {% elif scan.security_score >= 50 %}
+                        <span class="text-warning">Needs Improvement</span>
+                    {% else %}
+                        <span class="text-critical">Critical Risk Level</span>
+                    {% endif %}
+                </h3>
+                <p class="score-expl">
+                    Base score started at 100 with weighted deductions applied per finding (Critical: -25, High: -15, Medium: -8, Low: -3).
+                </p>
+            </div>
+        </div>
+
+        <!-- Issue Breakdown Cards -->
+        <div class="severity-summary-cards">
+            <div class="sev-card sev-critical">
+                <span class="sev-count">{{ scan.critical_count }}</span>
+                <span class="sev-label">Critical</span>
+                <small class="sev-penalty">-25 pts each</small>
+            </div>
+            <div class="sev-card sev-high">
+                <span class="sev-count">{{ scan.high_count }}</span>
+                <span class="sev-label">High</span>
+                <small class="sev-penalty">-15 pts each</small>
+            </div>
+            <div class="sev-card sev-medium">
+                <span class="sev-count">{{ scan.medium_count }}</span>
+                <span class="sev-label">Medium</span>
+                <small class="sev-penalty">-8 pts each</small>
+            </div>
+            <div class="sev-card sev-low">
+                <span class="sev-count">{{ scan.low_count }}</span>
+                <span class="sev-label">Low</span>
+                <small class="sev-penalty">-3 pts each</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Issues Table with Filter -->
+    <div class="findings-section">
+        <div class="findings-toolbar">
+            <h2>Detailed Vulnerability Findings ({{ issues|length }})</h2>
+            <div class="filter-controls">
+                <span class="filter-label">Filter Severity:</span>
+                <button type="button" class="filter-btn active" onclick="filterIssues('ALL')">All ({{ issues|length }})</button>
+                <button type="button" class="filter-btn" onclick="filterIssues('CRITICAL')">Critical ({{ scan.critical_count }})</button>
+                <button type="button" class="filter-btn" onclick="filterIssues('HIGH')">High ({{ scan.high_count }})</button>
+                <button type="button" class="filter-btn" onclick="filterIssues('MEDIUM')">Medium ({{ scan.medium_count }})</button>
+                <button type="button" class="filter-btn" onclick="filterIssues('LOW')">Low ({{ scan.low_count }})</button>
+            </div>
+        </div>
+
+        {% if issues %}
+            <div class="table-responsive">
+                <table class="findings-table" id="issuesTable">
+                    <thead>
+                        <tr>
+                            <th>Issue Type</th>
+                            <th>Severity</th>
+                            <th>Line</th>
+                            <th>Description</th>
+                            <th>Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in issues %}
+                            <tr class="issue-row" data-severity="{{ issue.severity }}">
+                                <td>
+                                    <strong>{{ issue.issue_type }}</strong>
+                                    {% if issue.code_snippet %}
+                                        <div class="code-snippet-preview">
+                                            <code>{{ issue.code_snippet }}</code>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="severity-badge badge-{{ issue.severity|lower }}">
+                                        {{ issue.severity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="line-number-pill">Line {{ issue.line_number }}</span>
+                                </td>
+                                <td>{{ issue.description }}</td>
+                                <td class="rec-cell">
+                                    <div class="rec-box">
+                                        💡 {{ issue.recommendation }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="clean-state-box">
+                <div class="clean-icon">🎉</div>
+                <h3>No Security Vulnerabilities Detected!</h3>
+                <p>The analyzed source code satisfies all CodeShield static inspection checks.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filterIssues(severity) {
+    const rows = document.querySelectorAll('.issue-row');
+    const buttons = document.querySelectorAll('.filter-btn');
+    
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    rows.forEach(row => {
+        if (severity === 'ALL' || row.getAttribute('data-severity') === severity) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

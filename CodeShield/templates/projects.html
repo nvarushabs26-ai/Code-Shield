@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Projects – CodeShield{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dash-title">Project Management</h1>
+            <p class="dash-subtitle">Organize your codebases, microservices, and audit groups</p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('createProjectModal').style.display='flex'">
+            + Create New Project
+        </button>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="createProjectModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create New Project</h3>
+                <button type="button" class="close-btn" onclick="document.getElementById('createProjectModal').style.display='none'">&times;</button>
+            </div>
+            <form action="{{ url_for('project_create') }}" method="POST">
+                <div class="form-group">
+                    <label for="project_name">Project Name</label>
+                    <input type="text" id="project_name" name="project_name" class="form-input" placeholder="e.g. Core Auth Microservice" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" class="form-input" rows="3" placeholder="Brief overview of the codebase and security requirements..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('createProjectModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="projects-grid">
+        {% for p in projects %}
+            <div class="project-card">
+                <div class="project-card-head">
+                    <h4>{{ p.project_name }}</h4>
+                    <span class="tag-scans">{{ p.scan_count }} scans</span>
+                </div>
+                <p class="project-card-desc">{{ p.description or 'No description provided.' }}</p>
+                <div class="project-card-meta">
+                    <small>Created: {{ p.created_at.strftime('%Y-%m-%d') if p.created_at else 'Recent' }}</small>
+                </div>
+                <div class="project-card-footer">
+                    <a href="{{ url_for('upload') }}?project_id={{ p.id }}" class="btn btn-sm btn-primary">Scan Code</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>No projects yet. Click "+ Create New Project" to get started.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

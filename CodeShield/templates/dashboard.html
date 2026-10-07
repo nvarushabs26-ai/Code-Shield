@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – CodeShield{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dash-title">Security Operations Dashboard</h1>
+            <p class="dash-subtitle">Real-time posture and code risk assessment</p>
+        </div>
+        <div class="dash-actions">
+            <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Start New Security Scan
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Dashboard Metric Cards -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon blue">📁</div>
+            <div class="metric-info">
+                <span class="metric-label">Active Projects</span>
+                <span class="metric-value">{{ projects|length }}</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon cyan">🔍</div>
+            <div class="metric-info">
+                <span class="metric-label">Security Scans</span>
+                <span class="metric-value">{{ total_scans }}</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon red">⚠️</div>
+            <div class="metric-info">
+                <span class="metric-label">Issues Detected</span>
+                <span class="metric-value">{{ total_issues }}</span>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-icon green">🛡️</div>
+            <div class="metric-info">
+                <span class="metric-label">Avg Security Score</span>
+                <span class="metric-value">{{ avg_score }}/100</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-bar">
+        <span class="quick-title">Quick Actions:</span>
+        <div class="action-buttons">
+            <a href="{{ url_for('upload') }}" class="btn btn-secondary">Upload Source Code</a>
+            <a href="{{ url_for('history') }}" class="btn btn-secondary">Scan History</a>
+            <a href="{{ url_for('projects') }}" class="btn btn-secondary">Manage Projects</a>
+        </div>
+    </div>
+
+    <!-- Protection Section -->
+    <div class="protection-card">
+        <div class="protection-header">
+            <div class="protection-icon">🛡️</div>
+            <div>
+                <h3>CodeShield Protection</h3>
+                <p>CodeShield helps identify common security risks before they become serious problems.</p>
+            </div>
+        </div>
+        <p class="protection-text">
+            Our automated scanner performs static deep analysis looking for hardcoded database credentials, leaked AWS/cloud tokens, dynamic eval() execution, and SQL injection flaws across your codebase.
+        </p>
+    </div>
+
+    <!-- Projects Section -->
+    <div class="section-block">
+        <div class="section-title-row">
+            <h2>Your Projects</h2>
+            <a href="{{ url_for('projects') }}" class="link-cyan">View All Projects &rarr;</a>
+        </div>
+
+        {% if projects %}
+            <div class="projects-grid">
+                {% for p in projects %}
+                    <div class="project-card">
+                        <div class="project-card-head">
+                            <h4>{{ p.project_name }}</h4>
+                            <span class="tag-scans">{{ p.scan_count }} scans</span>
+                        </div>
+                        <p class="project-card-desc">{{ p.description or 'No description provided.' }}</p>
+                        <div class="project-card-footer">
+                            <span class="score-pill">Avg Score: {{ p.avg_score|round|int if p.avg_score else 100 }}/100</span>
+                            <a href="{{ url_for('upload') }}?project_id={{ p.id }}" class="btn btn-sm btn-outline">Scan Code</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>No projects found. Create your first project to start scanning!</p>
+                <a href="{{ url_for('projects') }}" class="btn btn-primary">Create Project</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Scans Table -->
+    <div class="section-block">
+        <div class="section-title-row">
+            <h2>Recent Security Scans</h2>
+            <a href="{{ url_for('history') }}" class="link-cyan">View Scan History &rarr;</a>
+        </div>
+
+        {% if history %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>File Name</th>
+                            <th>Score</th>
+                            <th>Issues Found</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in history %}
+                            <tr>
+                                <td><strong>{{ s.project_name }}</strong></td>
+                                <td><code>{{ s.file_name }}</code></td>
+                                <td>
+                                    <span class="score-badge {% if s.security_score >= 90 %}excellent{% elif s.security_score >= 75 %}good{% elif s.security_score >= 50 %}warning{% else %}critical{% endif %}">
+                                        {{ s.security_score }}/100
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="issues-count">{{ s.total_issues }} findings</span>
+                                </td>
+                                <td>{{ s.scan_date.strftime('%Y-%m-%d %H:%M') if s.scan_date else 'Just now' }}</td>
+                                <td>
+                                    <a href="{{ url_for('results', scan_id=s.id) }}" class="btn btn-sm btn-outline">Results</a>
+                                    <a href="{{ url_for('report', scan_id=s.id) }}" class="btn btn-sm btn-ghost">Report</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>No scans performed yet.</p>
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">Run First Scan</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

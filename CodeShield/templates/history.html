@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Scan History – CodeShield{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dash-title">Security Audit History</h1>
+            <p class="dash-subtitle">Track historical scans, scoring trends, and remediation progress</p>
+        </div>
+        <a href="{{ url_for('upload') }}" class="btn btn-primary">Start New Scan</a>
+    </div>
+
+    {% if scans %}
+        <div class="table-responsive card-surface">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>File Name</th>
+                        <th>Security Score</th>
+                        <th>Issues Found</th>
+                        <th>Scan Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan in scans %}
+                        <tr>
+                            <td><strong>{{ scan.project_name }}</strong></td>
+                            <td><code>{{ scan.file_name }}</code></td>
+                            <td>
+                                <span class="score-badge {% if scan.security_score >= 90 %}excellent{% elif scan.security_score >= 75 %}good{% elif scan.security_score >= 50 %}warning{% else %}critical{% endif %}">
+                                    {{ scan.security_score }}/100
+                                </span>
+                            </td>
+                            <td>
+                                <span class="issues-badge">{{ scan.total_issues }} findings</span>
+                            </td>
+                            <td>{{ scan.scan_date.strftime('%Y-%m-%d %H:%M') if scan.scan_date else 'Recent' }}</td>
+                            <td class="action-cell">
+                                <a href="{{ url_for('results', scan_id=scan.id) }}" class="btn btn-sm btn-outline">View Results</a>
+                                <a href="{{ url_for('report', scan_id=scan.id) }}" class="btn btn-sm btn-ghost">Executive Report</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>No scans recorded yet in the database.</p>
+            <a href="{{ url_for('upload') }}" class="btn btn-primary">Run First Scan</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
